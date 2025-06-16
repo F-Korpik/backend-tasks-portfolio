@@ -1,4 +1,4 @@
-# BTC Indicator API
+pytho# BTC Indicator API
 
 A FastAPI service that fetches current and historical Bitcoin data and calculates basic indicators like 7-day EMA and 14-day RSI.
 
@@ -16,6 +16,7 @@ A FastAPI service that fetches current and historical Bitcoin data and calculate
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+
