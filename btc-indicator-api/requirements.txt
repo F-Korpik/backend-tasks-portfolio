@@ -6,3 +6,4 @@ pandas-ta
 requests
 pytest
 httpx
+jinja2
