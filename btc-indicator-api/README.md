@@ -15,8 +15,9 @@ A FastAPI service that fetches current and historical Bitcoin data and calculate
 ## Setup
 
 ```bash
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+
+python -m venv .venv 
+.venv\Scripts\Activate.ps1   // in backend-task-portfolio
+pip install -r requirements.txt // in btc-indicator-api
 uvicorn app.main:app --reload
 

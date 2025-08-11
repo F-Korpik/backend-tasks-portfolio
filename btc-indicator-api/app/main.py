@@ -1,14 +1,18 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-import json
+from fastapi.staticfiles import StaticFiles
+import json, os
 from pathlib import Path
+from datetime import date
 
 
 from app.data.update_price_info import update_price_info
 from app.data.csv_to_json import csv_to_json
 
 app = FastAPI()
+
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -25,14 +29,10 @@ async def read_chart(request: Request):
 
     data.reverse()
 
-    labels = [row[0] for row in data]
-    values = [float(row[1]) for row in data]
+    # labels = [row[0] for row in data]
+    # values = [float(row[1]) for row in data]
 
-    return templates.TemplateResponse("chart.html", {
-        "request": request,
-        "labels": labels,
-        "values": values
-    })
+    return templates.TemplateResponse("chart.html", {"request": request})
 
 @app.get("/csv_to_json")
 def convert_csv_to_json():
