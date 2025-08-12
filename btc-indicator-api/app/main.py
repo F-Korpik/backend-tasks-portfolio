@@ -6,7 +6,6 @@ import json, os
 from pathlib import Path
 from datetime import date
 
-
 from app.data.update_price_info import update_price_info
 from app.data.csv_to_json import csv_to_json
 
@@ -29,10 +28,15 @@ async def read_chart(request: Request):
 
     data.reverse()
 
-    # labels = [row[0] for row in data]
-    # values = [float(row[1]) for row in data]
+    dates = [row[0] for row in data]
+    prices = [float(row[1]) for row in data]
 
-    return templates.TemplateResponse("chart.html", {"request": request})
+    return templates.TemplateResponse("chart.html", {
+        "request": request,
+        "dates": dates,
+        "prices": prices
+    })
+
 
 @app.get("/csv_to_json")
 def convert_csv_to_json():
@@ -44,4 +48,3 @@ if __name__ == "__main__":
     # update_price_info(URL, "usd")
 
     pass
-
