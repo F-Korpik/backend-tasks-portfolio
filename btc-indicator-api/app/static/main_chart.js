@@ -8,18 +8,22 @@ const y = d3.scaleLinear().range([height, 0]);
 const dates = window.dates;
 const prices = window.prices;
 
-// Tworzymy tablicę obiektów { Date, Price }
-const data = dates.map((d, i) => ({
-    Date: new Date(d),
-    Price: prices[i]
-}));
-
+// Create the SVG element and append it to the chart container
 const svg = d3.select("#chart-container")
     .append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
     .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+// Tooltipy (divy)
+const tooltip = d3.select("body")
+  .append("div")
+  .attr("class", "tooltip")
+
+const tooltipRawDate = d3.select("body")
+  .append("div")
+  .attr("class", "tooltip")
 
 // Gradient
 const gradient = svg.append("defs")
@@ -41,32 +45,55 @@ gradient.append("stop")
   .attr("stop-color", "#85bb65")
   .attr("stop-opacity", 0);
 
-// Skale
+// Tworzymy tablicę obiektów { Date, Price }
+const data = dates.map((d, i) => ({
+    Date: new Date(d),
+    Price: prices[i]
+}));
+
+// Set the domains for the x and y scales
 x.domain(d3.extent(data, d => d.Date));
 y.domain([0, d3.max(data, d => d.Price)]);
 
 // Oś X
 svg.append("g")
+    .attr("class", "x-axis")
     .attr("transform", `translate(0,${height})`)
-    .call(d3.axisBottom(x));
+    .style("font-size", "14px")
+    .call(d3.axisBottom(x)
+      .tickValues(x.ticks(d3.timeYear.every(1)))
+      .tickFormat(d3.timeFormat("%Y")))
+    .selectAll(".tick line")
+    .style("stroke-opacity", 1)
+  svg.selectAll(".tick text")
+    .attr("fill", "#777");
 
-// Oś Y (po prawej)
-svg.append("g")
+  // Add the y-axis
+  svg.append("g")
+    .attr("class", "y-axis")
     .attr("transform", `translate(${width},0)`)
-    .call(d3.axisRight(y).tickFormat(d => `$${d.toFixed(2)}`));
+    .style("font-size", "14px")
+    .call(d3.axisRight(y)
+      .ticks(10)
+      .tickFormat(d => {
+        if (isNaN(d)) return "";
+        return `$${d.toFixed(2)}`;
+      }))
+    .selectAll(".tick text")
+    .style("fill", "#777");
 
-// Linia
+// Set up the line generator
 const line = d3.line()
     .x(d => x(d.Date))
     .y(d => y(d.Price));
 
-// Pole pod linią
+// Create an area generator
 const area = d3.area()
     .x(d => x(d.Date))
     .y0(height)
     .y1(d => y(d.Price));
 
-// Rysowanie obszaru z gradientem
+// Add the area path
 svg.append("path")
     .datum(data)
     .attr("class", "area")
@@ -74,7 +101,7 @@ svg.append("path")
     .style("fill", "url(#gradient)")
     .style("opacity", .5);
 
-// Rysowanie linii
+// Add the line path
 svg.append("path")
     .datum(data)
     .attr("class", "line")
@@ -83,22 +110,7 @@ svg.append("path")
     .attr("stroke-width", 1.5)
     .attr("d", line);
 
-// Tooltipy (divy)
-const tooltip = d3.select("body")
-  .append("div")
-  .attr("class", "tooltip")
-  .style("position", "absolute")
-  .style("pointer-events", "none")
-  .style("display", "none");
-
-const tooltipRawDate = d3.select("body")
-  .append("div")
-  .attr("class", "tooltip")
-  .style("position", "absolute")
-  .style("pointer-events", "none")
-  .style("display", "none");
-
-// Interaktywne kółko
+// Add an interactive circle
 const circle = svg.append("circle")
   .attr("r", 0)
   .attr("fill", "red")
@@ -106,20 +118,20 @@ const circle = svg.append("circle")
   .attr("opacity", 0.7)
   .style("pointer-events", "none");
 
-// Linie pomocnicze
+// Add red lines extending from the circle to the date and value
 const tooltipLineX = svg.append("line")
   .attr("class", "tooltip-line")
+  .attr("id", "tooltip-line-x")
   .attr("stroke", "red")
   .attr("stroke-width", 1)
-  .attr("stroke-dasharray", "2,2")
-  .style("display", "none");
+  .attr("stroke-dasharray", "2,2");
 
 const tooltipLineY = svg.append("line")
   .attr("class", "tooltip-line")
+  .attr("id", "tooltip-line-y")
   .attr("stroke", "red")
   .attr("stroke-width", 1)
-  .attr("stroke-dasharray", "2,2")
-  .style("display", "none");
+  .attr("stroke-dasharray", "2,2");
 
 // Prostokąt nasłuchujący ruch myszy
 const listeningRect = svg.append("rect")
@@ -182,7 +194,7 @@ svg.append("text")
   .style("font-size", "20px")
   .style("font-weight", "bold")
   .style("font-family", "sans-serif")
-  .text("Nintendo Co., Ltd. (NTDOY)");
+  .text("BTC price chart");
 
 // Źródło danych
 svg.append("text")
