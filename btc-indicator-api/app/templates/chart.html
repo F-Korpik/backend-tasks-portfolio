@@ -2,22 +2,53 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>BTC Chart</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>BTC price</title>
+	<style>
+		rect {
+		  pointer-events: all;
+		  fill-opacity: 0;
+		  stroke-opacity: 0;
+		  z-index: 1;
+		}
+
+		.tooltip {
+		position: absolute;
+		padding: 5px;
+		background-color: rgb(11, 40, 65);
+		color: white;
+		border: 0px solid white;
+		border-radius: 0px;
+		display: none;
+		opacity: .75;
+		font-size: 14px;
+	  }
+
+	  .tooltip-line {
+	  stroke-opacity: 0.5;
+	}
+	</style>
 </head>
+
+
 <body>
 
-    <div id="chart-container"></div>
+<div id="chart-container"></div>
 
-    <script>
-        window.dates = {{ dates | tojson }};
-        window.prices = {{ prices | tojson }};
-    </script>
+<div id="slider-range"></div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+	window.dates = {{ dates | tojson }};
+	window.prices = {{ prices | tojson }};
+</script>
 
-    <script src="/static/main_chart.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/d3-simple-slider"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-simple-slider/1.6.3/d3-simple-slider.min.js"></script>
+
+
+<script src="/static/main_chart.js"></script>
 
 
 </body>
