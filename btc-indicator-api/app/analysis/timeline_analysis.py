@@ -1,4 +1,33 @@
 from datetime import datetime
+import pandas as pd
+import json
+
+DATA = None
+
+def prepare_data(raw_data):
+    data = [
+        (
+            datetime.strptime(date, "%Y-%m-%d") if isinstance(date, str) else date,
+            float(price),
+        )
+        for date, price in raw_data
+    ]
+
+    global DATA
+    DATA = data
+    return data
+
+
+def walking_average(data, window_size):
+    dates = [row[0] for row in data]
+    prices = [float(row[1]) for row in data]
+
+    df = pd.DataFrame({"price": prices})
+    df["moving_average"] = df["price"].rolling(window=window_size, min_periods=1).mean()
+    df["moving_average"] = df["moving_average"].round(2)
+
+    wa = dict(zip(dates, df["moving_average"]))
+    return wa
 
 
 halvings = [
@@ -9,14 +38,17 @@ halvings = [
 ]
 
 
-def halving_cycle_high_low(data):
-    data = [
-        (
-            datetime.strptime(date, "%Y-%m-%d") if isinstance(date, str) else date,
-            float(price),
-        )
-        for date, price in data
-    ]
+def find_bessa_hossa(data):
+
+    rm_200 = walking_average(data, 200)
+    rm_30 = walking_average(data, 30)
+
+    return rm_200, rm_30
+
+def halving_cycle_high_low(raw_data, rm_200_file: str = "app/data/rm_200_data.json", rm_30_file: str = "app/data/rm_30_data.json"):
+    data = prepare_data(raw_data)
+
+    rm_200, rm_30 = find_bessa_hossa(data)
 
     prices_by_halvings = {}
     min_dates = []
@@ -48,5 +80,17 @@ def halving_cycle_high_low(data):
     print("Minima:", min_dates)
     print("Maksima:", max_dates)
 
+    rm_200 = {dt.strftime("%Y-%m-%d"): val for dt, val in rm_200.items()}
+    with open(rm_200_file, "w") as f:
+        json.dump(rm_200, f, indent=2)
 
-    return prices_by_halvings
+    rm_30 = {dt.strftime("%Y-%m-%d"): val for dt, val in rm_30.items()}
+    with open(rm_30_file, "w") as f:
+        json.dump(rm_30, f, indent=2)
+
+
+
+    print(f"✅ Dane średnich kroczących zapisano do {rm_200_file} i {rm_30_file}")
+
+
+    return rm_200, rm_30

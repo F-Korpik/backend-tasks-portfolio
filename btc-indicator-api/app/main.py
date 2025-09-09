@@ -19,8 +19,9 @@ templates = Jinja2Templates(directory="app/templates")
 
 URL = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range"
 
-
-
+btc_price_data_file = Path("app/data/btc_price_history.json")
+rm_200_file = Path("app/data/rm_200.json")
+rm_30_file = Path("app/data/rm_30.json")
 
 
 
@@ -28,9 +29,9 @@ URL = "https://api.coingecko.com/api/v3/coins/bitcoin/market_chart/range"
 async def read_chart(request: Request):
     update_price_info(URL, "usd")
 
-    file_path = Path("app/data/btc_price_history.json")
-    with file_path.open() as f:
-        data = json.load(f)
+
+    with btc_price_data_file.open() as btc_prices_f:
+        data = json.load(btc_prices_f)
 
     data.reverse()
     global DATA
@@ -54,7 +55,7 @@ def convert_csv_to_json():
 
 @app.get("/update_minmax_data")
 def update_minmax_data():
-    halving_cycle_high_low(DATA)
+    rm_200, rm_30 = halving_cycle_high_low(DATA)
 
 
 if __name__ == "__main__":
