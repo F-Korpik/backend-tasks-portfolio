@@ -7,6 +7,17 @@ const y = d3.scaleLinear().range([height, 0]);
 
 const dates = window.dates;
 const prices = window.prices;
+const rm_200_raw = window.rm_200;
+const rm_30_raw = window.rm_30;
+
+console.log('data lengths:', {
+  dates: Array.isArray(dates) ? dates.length : typeof dates,
+  prices: Array.isArray(prices) ? prices.length : typeof prices,
+  rm_200: Array.isArray(rm_200_raw) ? rm_200_raw.length : typeof rm_200_raw,
+  rm_30: Array.isArray(rm_30_raw) ? rm_30_raw.length : typeof rm_30_raw,
+});
+
+
 
 // Create the SVG element and append it to the chart container
 const svg = d3.select("#chart-container")
@@ -50,6 +61,22 @@ const data = dates.map((d, i) => ({
     Date: new Date(d),
     Price: prices[i]
 }));
+
+// // Tablice dla rm_200 i rm_30
+const rm200DataOriginal = dates.map((d, i) => ({
+     Date: new Date(d),
+     Price: typeof rm_200_raw[i] !== 'undefined' ? rm_200_raw[i] : NaN
+ }));
+let rm200DataCurrent = rm200DataOriginal.slice();
+
+const rm30DataOriginal = dates.map((d, i) => ({
+    Date: new Date(d),
+    Price: typeof rm_30_raw[i] !== 'undefined' ? rm_30_raw[i] : NaN
+}));
+let rm30DataCurrent = rm30DataOriginal.slice();
+
+console.log('RM200 Raw Data (rm_200_raw):', rm_200_raw);
+console.log('RM200 Processed Data (rm200Data):', rm200DataCurrent);
 
 // Set the domains for the x and y scales
 x.domain(d3.extent(data, d => d.Date));
@@ -109,6 +136,36 @@ svg.append("path")
     .attr("stroke", "#85bb65")
     .attr("stroke-width", 1.5)
     .attr("d", line);
+
+ // Generator linii dla rm_200
+ const lineRm200 = d3.line()
+     .defined(d => !isNaN(d.Price) && d.Price !== null)
+     .x(d => x(d.Date))
+     .y(d => y(d.Price));
+
+// Generator linii dla rm_30
+const lineRm30 = d3.line()
+    .defined(d => !isNaN(d.Price) && d.Price !== null)
+    .x(d => x(d.Date))
+    .y(d => y(d.Price));
+
+// Dodaj ścieżkę dla rm_200
+ svg.append("path")
+     .datum(rm200DataCurrent)
+     .attr("class", "line-rm200")
+     .attr("fill", "none")
+     .attr("stroke", "orange") // Wybierz kolor
+     .attr("stroke-width", 2.5)
+     .attr("d", lineRm200);
+
+// Dodaj ścieżkę dla rm_30
+svg.append("path")
+    .datum(rm30DataCurrent)
+    .attr("class", "line-rm30")
+    .attr("fill", "none")
+    .attr("stroke", "blue") // Wybierz kolor
+    .attr("stroke-width", 2.5)
+    .attr("d", lineRm30);
 
 // Add an interactive circle
 const circle = svg.append("circle")
@@ -204,12 +261,17 @@ const sliderRange = d3
 
     // Filter data based on slider values
     const filteredData = data.filter(d => d.Date >= val[0] && d.Date <= val[1]);
+    const filteredRm200Data = rm200DataCurrent.filter(d => d.Date >= val[0] && d.Date <= val[1]);
+    const filteredRm30Data = rm30DataCurrent.filter(d => d.Date >= val[0] && d.Date <= val[1]);
+
+    // Set new domain for y scale based on new data
+    y.domain([0, d3.max(filteredData, d => d.Price)]);
 
     // Update the line and area to new domain
     svg.select(".line").attr("d", line(filteredData));
     svg.select(".area").attr("d", area(filteredData));
-    // Set new domain for y scale based on new data
-    y.domain([0, d3.max(filteredData, d => d.Price)]);
+    svg.select(".line-rm200").attr("d", lineRm200(filteredRm200Data));
+    svg.select(".line-rm30").attr("d", lineRm30(filteredRm30Data));
 
 
     // Update the x-axis with new domain
@@ -233,6 +295,49 @@ const sliderRange = d3
 
   });
 
+  // --- added: shift helper + toggle handler ---
+function shiftRmBySamples(originalRmArray, samples) {
+  const n = Number.parseInt(samples, 10);
+  if (!Number.isInteger(n) || n === 0)
+    return originalRmArray.map(d => ({ Date: new Date(d.Date), Price: d.Price }));
+
+  return originalRmArray.map((d, i) => {
+    const srcIndex = i + n; // left shift: take value from future index earlier
+    const price = (srcIndex >= 0 && srcIndex < originalRmArray.length)
+      ? originalRmArray[srcIndex].Price
+      : NaN;
+    return { Date: new Date(d.Date), Price: price };
+  });
+}
+
+function toggleShift(event) {
+    const isChecked = event?.target ? event.target.checked : document.getElementById('shift-toggle')?.checked;
+    console.log("Przełącznik został zmieniony, stan:", isChecked);
+
+    if (isChecked) {
+      rm30DataCurrent = shiftRmBySamples(rm30DataOriginal, 15); // przesunięcie o 15 próbek w lewo
+      rm200DataCurrent = shiftRmBySamples(rm200DataOriginal, 100); // przesunięcie o 100 próbek w lewo
+    } else {
+      rm30DataCurrent = rm30DataOriginal.slice();
+      rm200DataCurrent = rm200DataOriginal.slice();
+    }
+
+    // zaktualizuj widoczną część linii zgodnie z aktualnym zakresem osi X
+    const domain = x.domain();
+    const filteredRm30 = rm30DataCurrent.filter(d => d.Date >= domain[0] && d.Date <= domain[1]);
+    const filteredRm200 = rm200DataCurrent.filter(d => d.Date >= domain[0] && d.Date <= domain[1]);
+
+    svg.select(".line-rm30")
+      .transition()
+      .duration(300)
+      .attr("d", lineRm30(filteredRm30));
+
+    svg.select(".line-rm200")
+      .transition()
+      .duration(300)
+      .attr("d", lineRm200(filteredRm200));
+}
+
   // Add the slider to the DOM
   const gRange = d3
     .select('#slider-range')
@@ -243,6 +348,7 @@ const sliderRange = d3
     .attr('transform', 'translate(90,30)');
 
   gRange.call(sliderRange);
+
 
 // Tytuł wykresu
 svg.append("text")
@@ -262,3 +368,13 @@ svg.append("text")
   .style("font-size", "12px")
   .style("font-family", "sans-serif")
   .text("Source: Coin Geko");
+
+// Poczekaj, aż DOM zostanie załadowany, a następnie dodaj nasłuchiwanie:
+
+const shiftToggle = document.getElementById('shift-toggle');
+if (shiftToggle) {
+  shiftToggle.addEventListener('change', toggleShift);
+  // apply current state on load
+  if (shiftToggle.checked) toggleShift({ target: shiftToggle });
+  console.log("Nasłuchiwanie zdarzeń dla przełącznika zostało dodane.");
+}
