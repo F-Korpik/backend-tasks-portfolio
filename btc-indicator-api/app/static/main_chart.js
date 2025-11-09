@@ -7,6 +7,8 @@ const y = d3.scaleLinear().range([height, 0]);
 
 const dates = window.dates;
 const prices = window.prices;
+const rm_200_raw = window.rm_200;
+const rm_30_raw = window.rm_30;
 
 // Create the SVG element and append it to the chart container
 const svg = d3.select("#chart-container")
@@ -49,6 +51,20 @@ gradient.append("stop")
 const data = dates.map((d, i) => ({
     Date: new Date(d),
     Price: prices[i]
+}));
+
+// // Tablice dla rm_200 i rm_30
+const rm200Data = dates.map((d, i) => ({
+     Date: new Date(d),
+     Price: rm_200_raw[i]
+ }));
+
+console.log('RM200 Raw Data (rm_200_raw):', rm_200_raw);
+console.log('RM200 Processed Data (rm200Data):', rm200Data);
+
+const rm30Data = dates.map((d, i) => ({
+    Date: new Date(d),
+    Price: rm_30[i]
 }));
 
 // Set the domains for the x and y scales
@@ -109,6 +125,36 @@ svg.append("path")
     .attr("stroke", "#85bb65")
     .attr("stroke-width", 1.5)
     .attr("d", line);
+
+ // Generator linii dla rm_200
+ const lineRm200 = d3.line()
+     .defined(d => !isNaN(d.Price) && d.Price !== null)
+     .x(d => x(d.Date))
+     .y(d => y(d.Price));
+
+// Generator linii dla rm_30
+const lineRm30 = d3.line()
+    .defined(d => !isNaN(d.Price) && d.Price !== null)
+    .x(d => x(d.Date))
+    .y(d => y(d.Price));
+
+// Dodaj ścieżkę dla rm_200
+ svg.append("path")
+     .datum(rm200Data)
+     .attr("class", "line-rm200")
+     .attr("fill", "none")
+     .attr("stroke", "orange") // Wybierz kolor
+     .attr("stroke-width", 2.5)
+     .attr("d", lineRm200);
+
+// Dodaj ścieżkę dla rm_30
+svg.append("path")
+    .datum(rm30Data)
+    .attr("class", "line-rm30")
+    .attr("fill", "none")
+    .attr("stroke", "blue") // Wybierz kolor
+    .attr("stroke-width", 2,5)
+    .attr("d", lineRm30);
 
 // Add an interactive circle
 const circle = svg.append("circle")
@@ -204,10 +250,16 @@ const sliderRange = d3
 
     // Filter data based on slider values
     const filteredData = data.filter(d => d.Date >= val[0] && d.Date <= val[1]);
+     const filteredRm200Data = rm200Data.filter(d => d.Date >= val[0] && d.Date <= val[1]);
+    const filteredRm30Data = rm30Data.filter(d => d.Date >= val[0] && d.Date <= val[1]);
+
 
     // Update the line and area to new domain
     svg.select(".line").attr("d", line(filteredData));
     svg.select(".area").attr("d", area(filteredData));
+    svg.select(".line-rm200").attr("d", lineRm200(filteredRm200Data));
+    svg.select(".line-rm30").attr("d", lineRm30(filteredRm30Data));
+
     // Set new domain for y scale based on new data
     y.domain([0, d3.max(filteredData, d => d.Price)]);
 
@@ -243,6 +295,7 @@ const sliderRange = d3
     .attr('transform', 'translate(90,30)');
 
   gRange.call(sliderRange);
+
 
 // Tytuł wykresu
 svg.append("text")
